@@ -1,12 +1,18 @@
 {
-  "name": "ammuench-ts-template",
+  "name": "node-artifact-api",
   "version": "0.0.1",
-  "description": "ammuench's template for starting a TS app",
-  "license": "n/a",
-  "repository": "",
-  "author": "",
+  "description": "A node module wrapper for the Valve official Artifact API",
+  "license": "MIT",
+  "repository": "https://github.com/ammuench/node-artifact-api",
+  "author": "Alex Muench (alex@alexmuen.ch)",
   "keywords": [
-    ""
+    "dota",
+    "artifact",
+    "valve",
+    "mtg",
+    "card",
+    "tcg",
+    "api"
   ],
   "files": [
     "lib"
@@ -21,15 +27,18 @@
     "coverage": "nyc --include='src/**/*.ts' --reporter=text --reporter=html --reporter=lcov mocha --require ts-node/register --compilers ts:ts-node/register --recursive 'test/**/*-spec.ts'",
     "watch": "npm run build -- --watch",
     "watch:test": "npm run test -- --watch",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "demo": "npm run build && node dist/demo.js"
   },
   "dependencies": {
+    "node-fetch": "^2.2.1",
     "tslint": "^5.9.0"
   },
   "devDependencies": {
     "@types/chai": "^4.1.0",
     "@types/mocha": "^5.2.0",
     "@types/node": "^10.12.0",
+    "@types/node-fetch": "^2.1.2",
     "@types/sinon": "^5.0.0",
     "chai": "^4.0.0",
     "coveralls": "^3.0.2",
