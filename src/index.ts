@@ -1,5 +1,5 @@
 import { ArtifactCard, CardApi, CardPreflight, CardSet, CardSetResponse } from './modules/cards';
-import { DeckApi } from './modules/decks';
+// import { DeckApi } from './modules/decks';
 
 // Export Interfaces
 export { ArtifactCard, CardPreflight, CardSet, CardSetResponse };

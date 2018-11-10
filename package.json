@@ -31,10 +31,14 @@
     "demo": "npm run build && node dist/demo.js"
   },
   "dependencies": {
+    "atob": "^2.1.2",
     "node-fetch": "^2.2.1",
+    "objpack": "0.0.2",
+    "qunpack": "^0.5.2",
     "tslint": "^5.9.0"
   },
   "devDependencies": {
+    "@types/atob": "^2.1.1",
     "@types/chai": "^4.1.0",
     "@types/mocha": "^5.2.0",
     "@types/node": "^10.12.0",
