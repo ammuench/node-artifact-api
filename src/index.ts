@@ -1,8 +1,8 @@
-import { ArtifactCard, CardApi, CardPreflight, CardSet, CardSetResponse } from './modules/cards';
+import { ArtifactCard, CardApi, CardPreflight, CardSet, CardSetResponse, ImageObj, Reference, TextObj } from './modules/cards';
 // import { DeckApi } from './modules/decks';
 
 // Export Interfaces
-export { ArtifactCard, CardPreflight, CardSet, CardSetResponse };
+export { ArtifactCard, CardPreflight, CardSet, CardSetResponse, ImageObj, Reference, TextObj };
 
 const cardApi = new CardApi();
 // const deckApi = new DeckApi();
