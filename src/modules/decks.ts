@@ -220,7 +220,7 @@ export class CArtifactDeckDecoder {
 
 /* tslint:disable */
 // Basic Deck encoder
-export class CArtifactDeckEncoder {
+class CArtifactDeckEncoder {
     static encodeDeck (deckContents) {
         if (!deckContents) throw Error("no deck contents passed");
 
