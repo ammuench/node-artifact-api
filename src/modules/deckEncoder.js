@@ -1,15 +1,10 @@
-/* tslint:disable */
 class CArtifactDeckEncoder {
     static encodeDeck (deckContents) {
         if (!deckContents) throw Error("no deck contents passed");
 
-        let bytes = this.encodeBytes(deckContents);
-        
-        
-        if (!bytes) return false;
+        let bytes = this.encodeBytes(deckContents);            
+        if (!bytes) throw Error("Failed to encode deck");
         let deckCode = this.encodeBytesToString(bytes);
-        
-        
         return deckCode;
     }
 
@@ -21,9 +16,9 @@ class CArtifactDeckEncoder {
 
         deckContents.heroes.sort(this.sortByCardId);
         deckContents.cards.sort(this.sortByCardId);
-
-        let countHeroes = deckContents.heroes;
-        let allCards = countHeroes.concat(deckContents.cards);
+        
+        let countHeroes = deckContents.heroes.length;
+        let allCards = deckContents.heroes.concat(deckContents.cards);
 
         let bytes = [];
         let version = this.currentVersion << 4 | this.extractNBitsWithCarry(countHeroes, 3);
@@ -40,7 +35,7 @@ class CArtifactDeckEncoder {
 
             while (trimLength > 63) {
                 let amountToTrim = Math.floor((trimLength - 63) / 4);
-                amountToTrim = amountToTrim > 1 ? amountToTrim : 1;
+                amountToTrim = (amountToTrim > 1) ? amountToTrim : 1;
                 name = name.substring(0, name.length - amountToTrim);
                 trimLength = name.length;
             }
@@ -54,10 +49,22 @@ class CArtifactDeckEncoder {
         let prevCardId = 0;
 
         for (let currHero = 0; currHero < countHeroes; currHero++) {
-            let card = allCards[currHero]
-            if (card.turn == 0) return false;
+            let card = allCards[currHero];
+            if (card.turn === 0) return false;
 
             if (!this.addCardToBuffer(card.turn, card.id - prevCardId, bytes, unCheckSum)) return false;
+            prevCardId = card.id;
+        }
+
+        prevCardId = 0;
+
+        for(let currCard = countHeroes; currCard < allCards.length; currCard++){
+            let card = allCards[currCard];
+            if (card.count === 0) return false;
+            if (card.id <= 0) return false;
+
+            if (!this.addCardToBuffer(card.count, card.id - prevCardId, bytes, unCheckSum)) return false;
+
             prevCardId = card.id;
         }
 
@@ -67,10 +74,10 @@ class CArtifactDeckEncoder {
             if (!this.addByte(bytes, nameByte)) return false;
         }
 
-        let unFullChecksum = this.computeChecksum(bytes, preStringByteCount - this.headerSize);
-        let unSmallChecksum = (unFullChecksum & 0x0FF);
+        let fullChecksum = this.computeChecksum(bytes, preStringByteCount - this.headerSize);
+        let smallChecksum = (fullChecksum & 0x0FF);
 
-        bytes[checkSumByte] = unSmallChecksum;
+        bytes[checkSumByte] = smallChecksum;
         return bytes;
 
 
@@ -79,14 +86,14 @@ class CArtifactDeckEncoder {
     static encodeBytesToString(bytes) {
         let byteCount = bytes.length;
 
-        if (byteCount == 0) return false;
+        if (byteCount === 0) return false;
 
-        let packed = Buffer(bytes, 'binary');
-        let encoded = Buffer.from(packed).toString('base64');
+        let packed = new Buffer(bytes, 'binary');
+        let encoded = new Buffer.from(packed).toString('base64');
         let deckString = this.encodedPrefix + encoded;
-
-        deckString = deckString.replace(/\//g, "_");
-        deckString = deckString.replace(/_/g, "=");
+        
+        deckString = deckString.replace(/\//g, "-");
+        deckString = deckString.replace(/=/g, "_");
 
         return deckString;
 
