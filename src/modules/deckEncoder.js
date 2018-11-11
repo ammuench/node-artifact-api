@@ -1,3 +1,4 @@
+/* tslint:disable */
 class CArtifactDeckEncoder {
     static encodeDeck (deckContents) {
         if (!deckContents) throw Error("no deck contents passed");
@@ -33,9 +34,8 @@ class CArtifactDeckEncoder {
         if (!this.addByte(bytes, dummyChecksum)) return false;
 
         let nameLen = 0;
-        //let name = "";
         if (this.isSet(deckContents.name)) {
-            var name = deckContents.name.replace(/<(?:.|\n)*?>/gm, '');//may need to init name on this line instead of 36. need again in line 112
+            var name = deckContents.name.replace(/<(?:.|\n)*?>/gm, '');
             let trimLength = name.length;
 
             while (trimLength > 63) {
