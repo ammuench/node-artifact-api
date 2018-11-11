@@ -19,8 +19,15 @@ export interface ArtifactCard {
     mini_image: ImageObj;
     large_image: ImageObj;
     ingame_image: ImageObj;
-    is_green: boolean;
-    attack: number;
+    illustrator?: string;
+    sub_type?: string;
+    is_black?: boolean;
+    is_red?: boolean;
+    is_green?: boolean;
+    is_blue?: boolean;
+    gold_cost?: number;
+    mana_cost?: number;
+    attack?: number;
     hit_points: number;
     references: Reference[];
 }
