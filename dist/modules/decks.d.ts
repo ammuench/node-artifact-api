@@ -1,17 +1,14 @@
 export declare class CArtifactDeckDecoder {
     $s_nCurrentVersion: number;
     private $sm_rgchEncodedPrefix;
-    private $nOutCardID;
-    private $nPrevCardBase;
-    private $nTotalCardBytes;
-    private $nCurrentByteIndex;
-    ParseDeck($strDeckCode: string): false | {
+    private $deckBytes;
+    ParseDeck($strDeckCode: string): string | false | {
         'heroes': any[];
         'cards': any[];
         'name': string;
     };
-    RawDeckBytes($strDeckCode: string): false | any[];
-    DecodeDeckString($strDeckCode: string): false | any[];
+    RawDeckBytes($strDeckCode: string): any;
+    private DecodeDeckString;
     private _unpackArray;
     private ReadBitsChunk;
     private ReadVarEncodedUint32;

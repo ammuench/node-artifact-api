@@ -1,29 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const atob = require('atob');
 const qunpack = require('qunpack');
 class CArtifactDeckDecoder {
     constructor() {
         this.$s_nCurrentVersion = 2;
-        this.$sm_rgchEncodedPrefix = 'ADC';
+        this.$sm_rgchEncodedPrefix = "ADC";
     }
     ParseDeck($strDeckCode) {
-        const $deckBytes = this.DecodeDeckString($strDeckCode);
-        if (!$deckBytes) {
-            console.log(`false 34`);
+        this.$deckBytes = this.DecodeDeckString($strDeckCode);
+        if (!this.$deckBytes) {
             return false;
         }
-        const $deck = this.ParseDeckInternal($strDeckCode, $deckBytes);
+        let $deck = this.ParseDeckInternal($strDeckCode);
         return $deck;
     }
     RawDeckBytes($strDeckCode) {
-        const $deckBytes = this.DecodeDeckString($strDeckCode);
-        return $deckBytes;
+        this.$deckBytes = this.DecodeDeckString($strDeckCode);
+        return this.$deckBytes;
     }
     DecodeDeckString($strDeckCode) {
         console.log($strDeckCode.substr(0, this.$sm_rgchEncodedPrefix.length) != this.$sm_rgchEncodedPrefix);
         if ($strDeckCode.substr(0, this.$sm_rgchEncodedPrefix.length) != this.$sm_rgchEncodedPrefix) {
-            console.log(`false 49`);
             return false;
         }
         let $strNoPrefix = $strDeckCode.substr(this.$sm_rgchEncodedPrefix.length, $strDeckCode.length);
@@ -43,21 +40,19 @@ class CArtifactDeckDecoder {
     ReadBitsChunk($nChunk, $nNumBits, $nCurrShift, $nOutBits) {
         const $nContinueBit = (1 << $nNumBits);
         const $nNewBits = $nChunk & ($nContinueBit - 1);
-        $nOutBits |= ($nNewBits << $nCurrShift);
+        $nOutBits = $nOutBits || ($nNewBits << $nCurrShift);
         return ($nChunk & $nContinueBit) != 0;
     }
     ReadVarEncodedUint32($nBaseValue, $nBaseBits, $data, $indexStart, $indexEnd, $outValue) {
-        console.log(`ReadVarEncodedUint32: ${$indexStart}, ${$indexEnd}`);
         $outValue = 0;
         let $nDeltaShift = 0;
         if (($nBaseBits == 0) || this.ReadBitsChunk($nBaseValue, $nBaseBits, $nDeltaShift, $outValue)) {
             $nDeltaShift += $nBaseBits;
             while (1) {
                 if ($indexStart > $indexEnd) {
-                    console.log(`false 88`);
                     return false;
                 }
-                const $nNextByte = $data[$indexStart++];
+                let $nNextByte = $data[$indexStart++];
                 if (!this.ReadBitsChunk($nNextByte, 7, $nDeltaShift, $outValue)) {
                     break;
                 }
@@ -67,91 +62,75 @@ class CArtifactDeckDecoder {
         return true;
     }
     ReadSerializedCard($data, $indexStart, $indexEnd, $nPrevCardBase, $nOutCount, $nOutCardID) {
-        console.log(`ReadSerializedCardIN ${$nOutCount}, ${$nOutCardID}`);
         if ($indexStart > $indexEnd) {
-            console.log(`false 106`);
             return false;
         }
-        this.$nCurrentByteIndex++;
-        const $nHeader = $data[this.$nCurrentByteIndex];
-        const $bHasExtendedCount = (($nHeader >> 6) == 0x03);
-        const $nCardDelta = 0;
-        if (!this.ReadVarEncodedUint32($nHeader, 5, $data, $indexStart, $indexEnd, $nCardDelta)) {
-            console.log(`false 116`);
+        let $nHeader = $data[$indexStart++];
+        let $bHasExtendedCount = (($nHeader >> 6) == 0x03);
+        let $nCardDelta = 0;
+        if (!this.ReadVarEncodedUint32($nHeader, 5, $data, $indexStart, $indexEnd, $nCardDelta))
             return false;
-        }
-        $nOutCardID = this.$nPrevCardBase + $nCardDelta;
+        $nOutCardID = $nPrevCardBase + $nCardDelta;
         if ($bHasExtendedCount) {
-            if (!this.ReadVarEncodedUint32(0, 0, $data, $indexStart, $indexEnd, $nOutCount)) {
-                console.log(`false 123`);
+            if (!this.ReadVarEncodedUint32(0, 0, $data, $indexStart, $indexEnd, $nOutCount))
                 return false;
-            }
         }
         else {
             $nOutCount = ($nHeader >> 6) + 1;
         }
-        this.$nPrevCardBase = $nOutCardID;
-        console.log(`ReadSerializedCard ${$nOutCount}, ${$nOutCardID}`);
+        $nPrevCardBase = $nOutCardID;
         return true;
     }
-    ParseDeckInternal($strDeckCode, $deckBytes) {
-        this.$nCurrentByteIndex = 0;
-        const $nTotalBytes = $deckBytes.length;
-        const $nVersionAndHeroes = $deckBytes[this.$nCurrentByteIndex++];
-        const $version = $nVersionAndHeroes >> 4;
+    ParseDeckInternal($strDeckCode) {
+        let $nCurrentByteIndex = 0;
+        let $nTotalBytes = this.$deckBytes.length;
+        let $nVersionAndHeroes = this.$deckBytes[$nCurrentByteIndex++];
+        let $version = $nVersionAndHeroes >> 4;
         if (this.$s_nCurrentVersion != $version && $version != 1) {
-            console.log(`false 141`);
-            return false;
+            return `false1`;
         }
-        const $nChecksum = $deckBytes[this.$nCurrentByteIndex++];
+        let $nChecksum = this.$deckBytes[$nCurrentByteIndex++];
         let $nStringLength = 0;
         if ($version > 1) {
-            $nStringLength = $deckBytes[this.$nCurrentByteIndex++];
+            $nStringLength = this.$deckBytes[$nCurrentByteIndex++];
         }
-        this.$nTotalCardBytes = $nTotalBytes - $nStringLength;
-        {
-            let $nComputedChecksum = 0;
-            for (let $i = this.$nCurrentByteIndex; $i < this.$nTotalCardBytes; $i++) {
-                $nComputedChecksum += $deckBytes[$i];
-            }
-            const $masked = ($nComputedChecksum & 0xFF);
-            if ($nChecksum != $masked) {
-                console.log(`false 158`);
-                return false;
-            }
+        let $nTotalCardBytes = $nTotalBytes - $nStringLength;
+        let $nComputedChecksum = 0;
+        for (let $i = $nCurrentByteIndex; $i < $nTotalCardBytes; $i++) {
+            $nComputedChecksum += this.$deckBytes[$i];
+        }
+        let $masked = ($nComputedChecksum & 0xFF);
+        if ($nChecksum != $masked) {
+            return `false2`;
         }
         let $nNumHeroes = 0;
-        if (!this.ReadVarEncodedUint32($nVersionAndHeroes, 3, $deckBytes, this.$nCurrentByteIndex, this.$nTotalCardBytes, $nNumHeroes)) {
-            console.log(`false 165`);
-            return false;
+        if (!this.ReadVarEncodedUint32($nVersionAndHeroes, 3, this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nNumHeroes)) {
+            return `false3`;
         }
-        console.log(`NUMHEROES: ${$nVersionAndHeroes}, ${$nNumHeroes}`);
-        const $heroes = [];
-        this.$nPrevCardBase = 0;
+        let $heroes = [];
+        let $nPrevCardBase = 0;
         for (let $nCurrHero = 0; $nCurrHero < $nNumHeroes; $nCurrHero++) {
-            console.log($nNumHeroes);
             let $nHeroTurn = 0;
             let $nHeroCardID = 0;
-            if (!this.ReadSerializedCard($deckBytes, this.$nCurrentByteIndex, this.$nTotalCardBytes, this.$nPrevCardBase, $nHeroTurn, $nHeroCardID)) {
-                console.log(`false 175`);
+            if (!this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nPrevCardBase, $nHeroTurn, $nHeroCardID)) {
                 return false;
             }
-            $heroes.push({ 'id': $nHeroCardID, 'turn': $nHeroTurn });
+            $heroes.push({ "id": $nHeroCardID, "turn": $nHeroTurn });
         }
-        const $cards = [];
-        this.$nPrevCardBase = 0;
-        while (this.$nCurrentByteIndex <= this.$nTotalCardBytes) {
-            const $nCardCount = 0;
-            const $nCardID = 0;
-            if (!this.ReadSerializedCard($deckBytes, this.$nCurrentByteIndex, this.$nTotalCardBytes, this.$nPrevCardBase, $nCardCount, $nCardID)) {
-                console.log(`false 186`);
+        let $cards = [];
+        $nPrevCardBase = 0;
+        while ($nCurrentByteIndex <= $nTotalCardBytes) {
+            let $nCardCount = 0;
+            let $nCardID = 0;
+            if (!this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalBytes, $nPrevCardBase, $nCardCount, $nCardID)) {
                 return false;
             }
-            $cards.push({ 'id': $nCardID, 'count': $nCardCount });
+            $cards.push({ "id": $nCardID, "count": $nCardCount });
+            $nCurrentByteIndex++;
         }
         let $name = '';
-        if (this.$nCurrentByteIndex <= $nTotalBytes) {
-            const $bytes = $deckBytes.slice(-1 * $nStringLength);
+        if ($nCurrentByteIndex <= $nTotalBytes) {
+            const $bytes = this.$deckBytes.slice(-1 * $nStringLength);
             let $nameArray = $bytes.map((byte) => {
                 return String.fromCharCode(byte);
             });
@@ -161,4 +140,3 @@ class CArtifactDeckDecoder {
     }
 }
 exports.CArtifactDeckDecoder = CArtifactDeckDecoder;
-;
