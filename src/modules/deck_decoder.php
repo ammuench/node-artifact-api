@@ -79,6 +79,7 @@ class CArtifactDeckDecoder
 		return true;
 	}
 
+	$readSerialized = array();
 		
 	//handles decoding a card that was serialized
 	private static function ReadSerializedCard( $data, &$indexStart, $indexEnd, &$nPrevCardBase, &$nOutCount, &$nOutCardID )
@@ -94,6 +95,7 @@ class CArtifactDeckDecoder
 
 		//read in the delta, which has 5 bits in the header, then additional bytes while the value is set
 		$nCardDelta = 0;
+		array_push( $readSerialized, array("nHeader" => $nHeader, "indexStart" => $indexStart, "indexEnd" => $indexEnd, "nCardDelta" => $nCardDelta));
 		if ( !CArtifactDeckDecoder::ReadVarEncodedUint32( $nHeader, 5, $data, $indexStart, $indexEnd, $nCardDelta ) )
 			return false;
 
@@ -153,6 +155,8 @@ class CArtifactDeckDecoder
 		if ( !CArtifactDeckDecoder::ReadVarEncodedUint32( $nVersionAndHeroes, 3, $deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nNumHeroes ) )
 			return false;
 
+		$heroIterator = array();
+
 		//now read in the heroes
 		$heroes = array();
 		{
@@ -165,6 +169,8 @@ class CArtifactDeckDecoder
 				{
 					return false;
 				}
+
+				array_push( $heroIterator, array("nCurrentByteIndex" => $nCurrentByteIndex, "nTotalCardBytes" => $nTotalCardBytes, "nPrevCardBase" => $nPrevCardBase, "nHeroTurn" => $nHeroTurn, "nHeroCardID" => $nHeroCardID))
 
 				array_push( $heroes, array("id" => $nHeroCardID, "turn" => $nHeroTurn) );
 			}

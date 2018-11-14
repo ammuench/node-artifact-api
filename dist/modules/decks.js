@@ -40,46 +40,68 @@ class CArtifactDeckDecoder {
     ReadBitsChunk($nChunk, $nNumBits, $nCurrShift, $nOutBits) {
         const $nContinueBit = (1 << $nNumBits);
         const $nNewBits = $nChunk & ($nContinueBit - 1);
-        $nOutBits = $nOutBits || ($nNewBits << $nCurrShift);
-        return ($nChunk & $nContinueBit) != 0;
+        $nOutBits |= ($nNewBits << $nCurrShift);
+        return { didPass: ($nChunk & $nContinueBit) != 0, outVal: $nOutBits };
     }
     ReadVarEncodedUint32($nBaseValue, $nBaseBits, $data, $indexStart, $indexEnd, $outValue) {
         $outValue = 0;
         let $nDeltaShift = 0;
-        if (($nBaseBits == 0) || this.ReadBitsChunk($nBaseValue, $nBaseBits, $nDeltaShift, $outValue)) {
+        let chunk = this.ReadBitsChunk($nBaseValue, $nBaseBits, $nDeltaShift, $outValue);
+        $outValue = chunk.outVal;
+        if (($nBaseBits == 0) || chunk.didPass) {
             $nDeltaShift += $nBaseBits;
             while (1) {
                 if ($indexStart > $indexEnd) {
                     return false;
                 }
                 let $nNextByte = $data[$indexStart++];
-                if (!this.ReadBitsChunk($nNextByte, 7, $nDeltaShift, $outValue)) {
+                chunk = this.ReadBitsChunk($nNextByte, 7, $nDeltaShift, $outValue);
+                if (!chunk.didPass) {
                     break;
                 }
+                $outValue = chunk.outVal;
                 $nDeltaShift += 7;
             }
         }
-        return true;
+        return { didPass: true, chunk, index: $indexStart };
     }
     ReadSerializedCard($data, $indexStart, $indexEnd, $nPrevCardBase, $nOutCount, $nOutCardID) {
         if ($indexStart > $indexEnd) {
-            return false;
+            return { didIncrement: false, didPass: false };
         }
         let $nHeader = $data[$indexStart++];
+        let newIndex = $indexStart;
         let $bHasExtendedCount = (($nHeader >> 6) == 0x03);
         let $nCardDelta = 0;
-        if (!this.ReadVarEncodedUint32($nHeader, 5, $data, $indexStart, $indexEnd, $nCardDelta))
-            return false;
+        const varEnc1 = this.ReadVarEncodedUint32($nHeader, 5, $data, newIndex, $indexEnd, $nCardDelta);
+        newIndex = varEnc1.index;
+        if (!varEnc1) {
+            return { didIncrement: true, didPass: false, index: newIndex };
+        }
+        else {
+            $nCardDelta = varEnc1.chunk.outVal;
+        }
         $nOutCardID = $nPrevCardBase + $nCardDelta;
         if ($bHasExtendedCount) {
-            if (!this.ReadVarEncodedUint32(0, 0, $data, $indexStart, $indexEnd, $nOutCount))
-                return false;
+            const varEnc2 = this.ReadVarEncodedUint32(0, 0, $data, newIndex, $indexEnd, $nOutCount);
+            newIndex = varEnc2.index;
+            if (!varEnc2) {
+                return { didIncrement: true, didPass: false, index: newIndex };
+            }
+            else {
+                $nOutCount = varEnc2.chunk.outVal;
+            }
         }
         else {
             $nOutCount = ($nHeader >> 6) + 1;
         }
         $nPrevCardBase = $nOutCardID;
-        return true;
+        const output = {
+            outCard: $nOutCardID,
+            outCount: $nOutCount,
+            prevCard: $nPrevCardBase,
+        };
+        return { didPass: true, didIncrement: true, output, index: newIndex };
     }
     ParseDeckInternal($strDeckCode) {
         let $nCurrentByteIndex = 0;
@@ -104,16 +126,28 @@ class CArtifactDeckDecoder {
             return `false2`;
         }
         let $nNumHeroes = 0;
-        if (!this.ReadVarEncodedUint32($nVersionAndHeroes, 3, this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nNumHeroes)) {
+        const heroNumRead32 = this.ReadVarEncodedUint32($nVersionAndHeroes, 3, this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nNumHeroes);
+        if (!heroNumRead32) {
             return `false3`;
+        }
+        else {
+            $nNumHeroes = heroNumRead32.chunk.outVal;
+            $nCurrentByteIndex = heroNumRead32.index;
         }
         let $heroes = [];
         let $nPrevCardBase = 0;
         for (let $nCurrHero = 0; $nCurrHero < $nNumHeroes; $nCurrHero++) {
             let $nHeroTurn = 0;
             let $nHeroCardID = 0;
-            if (!this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nPrevCardBase, $nHeroTurn, $nHeroCardID)) {
-                return false;
+            const readSerializedOne = this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nPrevCardBase, $nHeroTurn, $nHeroCardID);
+            if (!readSerializedOne.didPass) {
+                break;
+            }
+            else if (readSerializedOne.didIncrement) {
+                $nCurrentByteIndex = readSerializedOne.index;
+                $nHeroCardID = readSerializedOne.output.outCard;
+                $nHeroTurn = readSerializedOne.output.outCount;
+                $nPrevCardBase = readSerializedOne.output.prevCard;
             }
             $heroes.push({ "id": $nHeroCardID, "turn": $nHeroTurn });
         }
@@ -122,11 +156,18 @@ class CArtifactDeckDecoder {
         while ($nCurrentByteIndex <= $nTotalCardBytes) {
             let $nCardCount = 0;
             let $nCardID = 0;
-            if (!this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalBytes, $nPrevCardBase, $nCardCount, $nCardID)) {
+            const readSerializedTwo = this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalBytes, $nPrevCardBase, $nCardCount, $nCardID);
+            if (!readSerializedTwo.didPass) {
                 return false;
             }
-            $cards.push({ "id": $nCardID, "count": $nCardCount });
-            $nCurrentByteIndex++;
+            else if (readSerializedTwo.didIncrement) {
+                console.log($nCurrentByteIndex);
+                $nCurrentByteIndex = readSerializedTwo.index;
+                $nCardCount = readSerializedTwo.output.outCount;
+                $nCardID = readSerializedTwo.output.outCard;
+                $nPrevCardBase = readSerializedTwo.output.prevCard;
+                $cards.push({ "id": $nCardID, "count": $nCardCount });
+            }
         }
         let $name = '';
         if ($nCurrentByteIndex <= $nTotalBytes) {

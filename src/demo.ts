@@ -19,9 +19,10 @@ import { CArtifactDeckDecoder } from './modules/decks';
 
 const decoder = new CArtifactDeckDecoder();
 
-const deck = decoder.ParseDeck('ADCJWkTZX05uwGDCRV4XQGy3QGLmqUBg4GQJgGLGgO7AaABR3JlZW4vQmxhY2sgRXhhbXBsZQ__');
+// const deck = decoder.ParseDeck('ADCJWkTZX05uwGDCRV4XQGy3QGLmqUBg4GQJgGLGgO7AaABR3JlZW4vQmxhY2sgRXhhbXBsZQ__');
+const deck = decoder.ParseDeck('ADCJQUQI30zuwEYg2ABeF1Bu94BmWIBTEkLtAKlAZakAYmHh0JsdWUvUmVkIEV4YW1wbGU_');
 console.log(deck);
-
+console.log((deck as any).cards.length);
 
 /* tslint:enable */
 

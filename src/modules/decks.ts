@@ -44,7 +44,6 @@ export class CArtifactDeckDecoder {
 
     private DecodeDeckString($strDeckCode: string) {
         // Check for prefix
-        console.log($strDeckCode.substr(0, this.$sm_rgchEncodedPrefix.length) != this.$sm_rgchEncodedPrefix);
         if ($strDeckCode.substr(0, this.$sm_rgchEncodedPrefix.length) != this.$sm_rgchEncodedPrefix) {
             return false;
         }
@@ -67,19 +66,21 @@ export class CArtifactDeckDecoder {
     }
 
     //reads out a var-int encoded block of bits, returns true if another chunk should follow
-    private ReadBitsChunk($nChunk: any, $nNumBits: any, $nCurrShift: any, $nOutBits: any) {
+    private ReadBitsChunk($nChunk: number, $nNumBits: any, $nCurrShift: any, $nOutBits: any) {
         const $nContinueBit = (1 << $nNumBits);
         const $nNewBits = $nChunk & ($nContinueBit - 1);
-        $nOutBits = $nOutBits || ($nNewBits << $nCurrShift);
+        $nOutBits |= ($nNewBits << $nCurrShift);
 
-        return ($nChunk & $nContinueBit) != 0;
+        return { didPass: ($nChunk & $nContinueBit) != 0, outVal: $nOutBits };
     }
 
     private ReadVarEncodedUint32($nBaseValue: any, $nBaseBits: any, $data: any, $indexStart: any, $indexEnd: any, $outValue: any) {
         $outValue = 0;
-
         let $nDeltaShift = 0;
-        if (($nBaseBits == 0) || this.ReadBitsChunk($nBaseValue, $nBaseBits, $nDeltaShift, $outValue)) {
+        let chunk = this.ReadBitsChunk($nBaseValue, $nBaseBits, $nDeltaShift, $outValue);
+        $outValue = chunk.outVal;
+
+        if (($nBaseBits == 0) || chunk.didPass) {
             $nDeltaShift += $nBaseBits;
 
             while (1) {
@@ -89,15 +90,19 @@ export class CArtifactDeckDecoder {
                 }
                 //read the bits from this next byte and see if we are done
                 let $nNextByte = $data[$indexStart++];
-                if (!this.ReadBitsChunk($nNextByte, 7, $nDeltaShift, $outValue)) {
+                chunk = this.ReadBitsChunk($nNextByte, 7, $nDeltaShift, $outValue);
+
+                if (!chunk.didPass) {
                     break;
                 }
+
+                $outValue = chunk.outVal;
 
                 $nDeltaShift += 7;
             }
         }
 
-        return true;
+        return { didPass: true, chunk, index: $indexStart };
     }
 
 
@@ -105,34 +110,50 @@ export class CArtifactDeckDecoder {
     private ReadSerializedCard($data: any, $indexStart: any, $indexEnd: any, $nPrevCardBase: any, $nOutCount: any, $nOutCardID: any) {
         //end of the memory block?
         if ($indexStart > $indexEnd) {
-            return false;
+            return { didIncrement: false, didPass: false };
         }
+
 
         //header contains the count (2 bits), a continue flag, and 5 bits of offset data. If we have 11 for the count bits we have the count
         //encoded after the offset
         let $nHeader = $data[$indexStart++];
+        let newIndex = $indexStart;
         let $bHasExtendedCount = (($nHeader >> 6) == 0x03);
 
         //read in the delta, which has 5 bits in the header, then additional bytes while the value is set
         let $nCardDelta = 0;
-        if (!this.ReadVarEncodedUint32($nHeader, 5, $data, $indexStart, $indexEnd, $nCardDelta))
-            return false;
+        const varEnc1: any = this.ReadVarEncodedUint32($nHeader, 5, $data, newIndex, $indexEnd, $nCardDelta);
+        newIndex = varEnc1.index;
+        if (!varEnc1) {
+            return { didIncrement: true, didPass: false, index: newIndex };
+        } else {
+            $nCardDelta = varEnc1.chunk.outVal;
+        }
 
         $nOutCardID = $nPrevCardBase + $nCardDelta;
 
         //now parse the count if we have an extended count
         if ($bHasExtendedCount) {
-            if (!this.ReadVarEncodedUint32(0, 0, $data, $indexStart, $indexEnd, $nOutCount))
-                return false;
-        }
-        else {
+            const varEnc2: any = this.ReadVarEncodedUint32(0, 0, $data, newIndex, $indexEnd, $nOutCount);
+            newIndex = varEnc2.index
+            if (!varEnc2) {
+                return { didIncrement: true, didPass: false, index: newIndex };
+            } else {
+                $nOutCount = varEnc2.chunk.outVal;
+            }
+        } else {
             //the count is just the upper two bits + 1 (since we don't encode zero)
             $nOutCount = ($nHeader >> 6) + 1;
         }
 
         //update our previous card before we do the remap, since it was encoded without the remap
         $nPrevCardBase = $nOutCardID;
-        return true;
+        const output = {
+            outCard: $nOutCardID,
+            outCount: $nOutCount,
+            prevCard: $nPrevCardBase,
+        }
+        return { didPass: true, didIncrement: true, output, index: newIndex };
     }
 
     private ParseDeckInternal($strDeckCode: string) {
@@ -172,8 +193,12 @@ export class CArtifactDeckDecoder {
 
         //read in our hero count (part of the bits are in the version, but we can overflow bits here
         let $nNumHeroes = 0; // Todo setup to track changes
-        if (!this.ReadVarEncodedUint32($nVersionAndHeroes, 3, this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nNumHeroes)) {
+        const heroNumRead32: any = this.ReadVarEncodedUint32($nVersionAndHeroes, 3, this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nNumHeroes);
+        if (!heroNumRead32) {
             return `false3`;
+        } else {
+            $nNumHeroes = heroNumRead32.chunk.outVal;
+            $nCurrentByteIndex = heroNumRead32.index;
         }
 
         //now read in the heroes
@@ -182,8 +207,14 @@ export class CArtifactDeckDecoder {
         for (let $nCurrHero = 0; $nCurrHero < $nNumHeroes; $nCurrHero++) {
             let $nHeroTurn = 0;
             let $nHeroCardID = 0;
-            if (!this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nPrevCardBase, $nHeroTurn, $nHeroCardID)) {
-                return false;
+            const readSerializedOne = this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nPrevCardBase, $nHeroTurn, $nHeroCardID);
+            if (!readSerializedOne.didPass) {
+                break;
+            } else if (readSerializedOne.didIncrement) {
+                $nCurrentByteIndex = readSerializedOne.index;
+                $nHeroCardID = readSerializedOne.output.outCard;
+                $nHeroTurn = readSerializedOne.output.outCount;
+                $nPrevCardBase = readSerializedOne.output.prevCard;
             }
 
             $heroes.push({ "id": $nHeroCardID, "turn": $nHeroTurn });
@@ -195,12 +226,18 @@ export class CArtifactDeckDecoder {
         while ($nCurrentByteIndex <= $nTotalCardBytes) {
             let $nCardCount = 0;
             let $nCardID = 0;
-            if (!this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalBytes, $nPrevCardBase, $nCardCount, $nCardID)) {
+            const readSerializedTwo = this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalBytes, $nPrevCardBase, $nCardCount, $nCardID);
+            if (!readSerializedTwo.didPass) {
                 return false;
+            } else if (readSerializedTwo.didIncrement) {
+                $nCurrentByteIndex = readSerializedTwo.index;
+                $nCardCount = readSerializedTwo.output.outCount;
+                $nCardID = readSerializedTwo.output.outCard;
+                $nPrevCardBase = readSerializedTwo.output.prevCard;
+                $cards.push({ "id": $nCardID, "count": $nCardCount });
             }
 
-            $cards.push({ "id": $nCardID, "count": $nCardCount });
-            $nCurrentByteIndex++;
+            
         }
 
         let $name = '';
