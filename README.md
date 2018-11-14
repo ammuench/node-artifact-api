@@ -12,7 +12,7 @@ npm i --save node-artifact-api
 import singular methods, or full api as object
 
 ```javascript
-import { getSet } from 'node-artifact-api';
+import { getDeck, getSet } from 'node-artifact-api';
 
 // OR
 
@@ -21,22 +21,25 @@ import * as ArtifactApi from 'node-artifact-api';
 
 then use any of the methods below.
 
-Project written in typescript and has type support out of the box.
+Project written in Typescript and has types support out of the box.
 
+## Features
 
-## Methods
-List of methods:
+Features are pretty basic right now:
 
-* **getSet(setId: string): Promise\<CardSetResponse\>**
-  * Returns CardSetResponse object, containing version info and list of cards in set
+* Fetching card set by ID
+* Decoding deck codes
+
+More is coming soon, especially once the Beta is released on the 19th and I can play with the client directly for more test data.
+
+[For a full API Guide, click here](https://github.com/ammuench/node-artifact-api/blob/master/API.md)
 
 ## Feature Roadmap
 The following is a list of features planned for release with this API in the coming weeks:
 
 * Individual Card Fetching (Not Started)
 * System for passing a "caching" middleware (Not Started)
-* Deck Decoding (Started, [work currently here](https://github.com/ammuench/node-artifact-api/tree/spike/phpwat))
-  * Currently working on porting of PHP decoding logic into Javascript.  Roughly 50% done.
+* ~~Deck Decoding~~ (**Done in v0.2.0!**)
 * Deck Encoding (Not Started)
 
 ## Contributors

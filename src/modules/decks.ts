@@ -1,35 +1,93 @@
-// import fetch from 'node-fetch';
-
 const qunpack = require('qunpack');
 
-// export class DeckApi {
-//     private API_ROOT = 'https://playartifact.com/d/';
+export interface ArtifactDeck {
+    cards: DeckCard[];
+    heroes: DeckHero[];
+    name: string;
+}
 
-//     public async getDeck(deckId: string): Promise<any> {
-//         try {
-//             const deckUrl = `${this.API_ROOT}${deckId}`;
-//             const deck = await fetch(deckUrl);
-//             return deck.json();
-//         } catch (error) {
-//             console.log(error);
-//             throw Error(`Error while fetching deck: ${JSON.stringify(error)}`);
-//         }
-//     }
-// }
+export interface DeckCard {
+    count: number;
+    id: number;
+}
 
-/* tslint:disable */
-// Basic Deck decoder
-export class CArtifactDeckDecoder {
+export interface DeckHero {
+    id: number;
+    turn: number;
+}
+
+export class DeckApi {
+    private deckDecoder: ArtifactDeckDecoder;
+
+    constructor() {
+        this.deckDecoder = new ArtifactDeckDecoder();
+    }
+
+    public getDeck(deckId: string): ArtifactDeck {
+        try {
+            const deck: ArtifactDeck = this.deckDecoder.ParseDeck(deckId);
+            return deck;
+        } catch (e) {
+            return {
+                cards: [],
+                heroes: [],
+                name: 'Invalid Code',
+            };
+        }
+    }
+}
+
+/*
+
+WARNING!  THERE BE DRAGONS UP AHEAD.
+I spent a fair chunk of time remapping PHP functions and figuring out bitwise stuff to translate
+Valve's decoder source into a JS compatible version.  It's very messy, has a bulk TSLint disable
+and now that it's working I'm going to avoid touching it unless there are future changes that
+break the work I've done.  As long as it works, I'm happy with it :D
+
+If you're going to dig through it, I suggest using Valve's original PHP code from here:
+https://github.com/ValveSoftware/ArtifactDeckCode/blob/master/PHP/deck_decoder.php
+
+It's likely much easier to follow and understand without all of my disassembling and reassembling.
+
+                                    ^\    ^
+                        / \\  / \
+                       /.  \\/   \      |\___/|
+    *----*           / / |  \\    \  __/  O  O\
+    |   /          /  /  |   \\    \_\/  \     \
+   / /\/         /   /   |    \\   _\/    '@___@
+  /  /         /    /    |     \\ _\/       |U
+  |  |       /     /     |      \\\/        |
+  \  |     /_     /      |       \\  )   \ _|_
+  \   \       ~-./_ _    |    .- ; (  \_ _ _,\'
+  ~    ~.           .-~-.|.-*      _        {-,
+   \      ~-. _ .-~                 \      /\'
+    \                   }            {   .*
+     ~.                 '-/        /.-~----.
+       ~- _             /        >..----.\\\
+           ~ - - - - ^}_ _ _ _ _ _ _.-\\\
+
+*/
+
+/**
+ * Converted PHP Decoder Provided by Valve
+ * Can be used to get raw deck bytes or raw deck JSON
+ *
+ * @export
+ * @class ArtifactDeckDecoder
+ */
+export class ArtifactDeckDecoder {
+    /* tslint:disable */
     public $s_nCurrentVersion = 2;
     private $sm_rgchEncodedPrefix = "ADC";
 
     private $deckBytes: any;
 
     //returns array("heroes" => array(id, turn), "cards" => array(id, count), "name" => name)
-    public ParseDeck($strDeckCode: string) {
+    public ParseDeck($strDeckCode: string): ArtifactDeck {
         this.$deckBytes = this.DecodeDeckString($strDeckCode);
         if (!this.$deckBytes) {
-            return false;
+            throw new Error('Error Parsing Deck');
         }
 
         let $deck = this.ParseDeckInternal($strDeckCode);
@@ -45,7 +103,7 @@ export class CArtifactDeckDecoder {
     private DecodeDeckString($strDeckCode: string) {
         // Check for prefix
         if ($strDeckCode.substr(0, this.$sm_rgchEncodedPrefix.length) != this.$sm_rgchEncodedPrefix) {
-            return false;
+            throw new Error('Error Parsing Deck');
         }
         // strip prefix from deck code
         let $strNoPrefix = $strDeckCode.substr(this.$sm_rgchEncodedPrefix.length, $strDeckCode.length);
@@ -86,7 +144,7 @@ export class CArtifactDeckDecoder {
             while (1) {
                 //do we have more room?
                 if ($indexStart > $indexEnd) {
-                    return false;
+                    throw new Error('Error Parsing Deck');
                 }
                 //read the bits from this next byte and see if we are done
                 let $nNextByte = $data[$indexStart++];
@@ -165,7 +223,7 @@ export class CArtifactDeckDecoder {
         let $nVersionAndHeroes = this.$deckBytes[$nCurrentByteIndex++];
         let $version = $nVersionAndHeroes >> 4;
         if (this.$s_nCurrentVersion != $version && $version != 1) {
-            return `false1`;
+            throw new Error('Error Parsing Deck');
         }
         //do checksum check
         // $nCurrentByteIndex = $nCurrentByteIndex++;
@@ -186,7 +244,7 @@ export class CArtifactDeckDecoder {
 
         let $masked = ($nComputedChecksum & 0xFF);
         if ($nChecksum != $masked) {
-            return `false2`;
+            throw new Error('Error Parsing Deck');
         }
 
 
@@ -195,7 +253,7 @@ export class CArtifactDeckDecoder {
         let $nNumHeroes = 0; // Todo setup to track changes
         const heroNumRead32: any = this.ReadVarEncodedUint32($nVersionAndHeroes, 3, this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nNumHeroes);
         if (!heroNumRead32) {
-            return `false3`;
+            throw new Error('Error Parsing Deck');
         } else {
             $nNumHeroes = heroNumRead32.chunk.outVal;
             $nCurrentByteIndex = heroNumRead32.index;
@@ -220,15 +278,14 @@ export class CArtifactDeckDecoder {
             $heroes.push({ "id": $nHeroCardID, "turn": $nHeroTurn });
         }
 
-
         let $cards: any[] = [];
         $nPrevCardBase = 0;
-        while ($nCurrentByteIndex <= $nTotalCardBytes) {
+        while ($nCurrentByteIndex < $nTotalCardBytes) {
             let $nCardCount = 0;
             let $nCardID = 0;
             const readSerializedTwo = this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalBytes, $nPrevCardBase, $nCardCount, $nCardID);
             if (!readSerializedTwo.didPass) {
-                return false;
+                break;
             } else if (readSerializedTwo.didIncrement) {
                 $nCurrentByteIndex = readSerializedTwo.index;
                 $nCardCount = readSerializedTwo.output.outCount;
@@ -236,8 +293,6 @@ export class CArtifactDeckDecoder {
                 $nPrevCardBase = readSerializedTwo.output.prevCard;
                 $cards.push({ "id": $nCardID, "count": $nCardCount });
             }
-
-            
         }
 
         let $name = '';
@@ -252,5 +307,5 @@ export class CArtifactDeckDecoder {
         }
         return { 'heroes': $heroes, 'cards': $cards, 'name': $name };
     }
+    /* tslint:enable */
 }
-/* tslint:enable */

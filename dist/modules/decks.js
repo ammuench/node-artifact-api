@@ -1,7 +1,26 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const qunpack = require('qunpack');
-class CArtifactDeckDecoder {
+class DeckApi {
+    constructor() {
+        this.deckDecoder = new ArtifactDeckDecoder();
+    }
+    getDeck(deckId) {
+        try {
+            const deck = this.deckDecoder.ParseDeck(deckId);
+            return deck;
+        }
+        catch (e) {
+            return {
+                cards: [],
+                heroes: [],
+                name: 'Invalid Code',
+            };
+        }
+    }
+}
+exports.DeckApi = DeckApi;
+class ArtifactDeckDecoder {
     constructor() {
         this.$s_nCurrentVersion = 2;
         this.$sm_rgchEncodedPrefix = "ADC";
@@ -9,7 +28,7 @@ class CArtifactDeckDecoder {
     ParseDeck($strDeckCode) {
         this.$deckBytes = this.DecodeDeckString($strDeckCode);
         if (!this.$deckBytes) {
-            return false;
+            throw new Error('Error Parsing Deck');
         }
         let $deck = this.ParseDeckInternal($strDeckCode);
         return $deck;
@@ -19,9 +38,8 @@ class CArtifactDeckDecoder {
         return this.$deckBytes;
     }
     DecodeDeckString($strDeckCode) {
-        console.log($strDeckCode.substr(0, this.$sm_rgchEncodedPrefix.length) != this.$sm_rgchEncodedPrefix);
         if ($strDeckCode.substr(0, this.$sm_rgchEncodedPrefix.length) != this.$sm_rgchEncodedPrefix) {
-            return false;
+            throw new Error('Error Parsing Deck');
         }
         let $strNoPrefix = $strDeckCode.substr(this.$sm_rgchEncodedPrefix.length, $strDeckCode.length);
         $strNoPrefix = $strNoPrefix.replace(/\-/g, '/');
@@ -52,7 +70,7 @@ class CArtifactDeckDecoder {
             $nDeltaShift += $nBaseBits;
             while (1) {
                 if ($indexStart > $indexEnd) {
-                    return false;
+                    throw new Error('Error Parsing Deck');
                 }
                 let $nNextByte = $data[$indexStart++];
                 chunk = this.ReadBitsChunk($nNextByte, 7, $nDeltaShift, $outValue);
@@ -109,7 +127,7 @@ class CArtifactDeckDecoder {
         let $nVersionAndHeroes = this.$deckBytes[$nCurrentByteIndex++];
         let $version = $nVersionAndHeroes >> 4;
         if (this.$s_nCurrentVersion != $version && $version != 1) {
-            return `false1`;
+            throw new Error('Error Parsing Deck');
         }
         let $nChecksum = this.$deckBytes[$nCurrentByteIndex++];
         let $nStringLength = 0;
@@ -123,12 +141,12 @@ class CArtifactDeckDecoder {
         }
         let $masked = ($nComputedChecksum & 0xFF);
         if ($nChecksum != $masked) {
-            return `false2`;
+            throw new Error('Error Parsing Deck');
         }
         let $nNumHeroes = 0;
         const heroNumRead32 = this.ReadVarEncodedUint32($nVersionAndHeroes, 3, this.$deckBytes, $nCurrentByteIndex, $nTotalCardBytes, $nNumHeroes);
         if (!heroNumRead32) {
-            return `false3`;
+            throw new Error('Error Parsing Deck');
         }
         else {
             $nNumHeroes = heroNumRead32.chunk.outVal;
@@ -153,15 +171,14 @@ class CArtifactDeckDecoder {
         }
         let $cards = [];
         $nPrevCardBase = 0;
-        while ($nCurrentByteIndex <= $nTotalCardBytes) {
+        while ($nCurrentByteIndex < $nTotalCardBytes) {
             let $nCardCount = 0;
             let $nCardID = 0;
             const readSerializedTwo = this.ReadSerializedCard(this.$deckBytes, $nCurrentByteIndex, $nTotalBytes, $nPrevCardBase, $nCardCount, $nCardID);
             if (!readSerializedTwo.didPass) {
-                return false;
+                break;
             }
             else if (readSerializedTwo.didIncrement) {
-                console.log($nCurrentByteIndex);
                 $nCurrentByteIndex = readSerializedTwo.index;
                 $nCardCount = readSerializedTwo.output.outCount;
                 $nCardID = readSerializedTwo.output.outCard;
@@ -180,4 +197,4 @@ class CArtifactDeckDecoder {
         return { 'heroes': $heroes, 'cards': $cards, 'name': $name };
     }
 }
-exports.CArtifactDeckDecoder = CArtifactDeckDecoder;
+exports.ArtifactDeckDecoder = ArtifactDeckDecoder;
