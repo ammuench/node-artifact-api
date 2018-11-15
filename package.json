@@ -1,6 +1,6 @@
 {
   "name": "node-artifact-api",
-  "version": "0.2.0",
+  "version": "0.2.1-beta",
   "description": "A node module wrapper for the Valve official Artifact API",
   "license": "MIT",
   "repository": "https://github.com/ammuench/node-artifact-api",
