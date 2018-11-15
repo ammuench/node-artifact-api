@@ -15,12 +15,12 @@
     "api"
   ],
   "files": [
-    "lib"
+    "dist"
   ],
-  "main": "lib/index.js",
-  "typings": "lib/index.d.ts",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
   "scripts": {
-    "clean": "rimraf lib",
+    "clean": "rimraf dist",
     "lint": "tslint --force --format verbose \"src/**/*.ts\"",
     "build": "npm run clean && npm run lint && echo Using TypeScript && tsc --version && tsc --pretty",
     "test": "npm run build && mocha --compilers ts:ts-node/register --recursive 'test/**/*-spec.ts'",
@@ -59,7 +59,7 @@
       "src/**/*"
     ],
     "exclude": [
-      "lib"
+      "dist"
     ],
     "extension": [
       ".ts"
