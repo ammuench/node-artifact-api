@@ -1,3 +1,4 @@
+import { ArtifactCache, SetsCache } from './modules/cache';
 import { ArtifactCard, CardApi, CardPreflight, CardSet, CardSetResponse, ImageObj, Reference, TextObj } from './modules/cards';
 import { ArtifactDeck, ArtifactDeckDecoder, DeckApi, DeckCard, DeckHero } from './modules/decks';
 
@@ -7,6 +8,7 @@ export { ArtifactCard, ArtifactDeck, CardPreflight, CardSet, CardSetResponse, De
 // Export Deck Decoder Class Directly
 export { ArtifactDeckDecoder };
 
+const cache = new 
 const cardApi = new CardApi();
 const deckApi = new DeckApi();
 /**

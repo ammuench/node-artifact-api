@@ -1,5 +1,7 @@
 import fetch from 'node-fetch';
 
+import { ArtifactCache } from './cache';
+
 export interface CardSetResponse {
     card_set: CardSet;
 }
@@ -58,6 +60,11 @@ export interface CardPreflight {
 
 export class CardApi {
     private API_ROOT = 'https://playartifact.com/cardset/';
+    private _cache: ArtifactCache;
+
+    constructor(cache: ArtifactCache) {
+        this._cache = cache;
+    }
 
     public async getSet(setId: string): Promise<CardSetResponse> {
         try {
