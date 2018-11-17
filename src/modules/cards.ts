@@ -1,5 +1,6 @@
 import fetch from 'node-fetch';
 
+import { SET_IDS } from '../helpers/constants';
 import { ArtifactCache } from './cache';
 
 export interface CardSetResponse {
@@ -39,11 +40,49 @@ export interface ArtifactCard {
 }
 
 export interface TextObj {
-    english: string;
+    english?: string;
+    german?: string;
+    french?: string;
+    italian?: string;
+    koreana?: string;
+    spanish?: string;
+    schinese?: string;
+    tchinese?: string;
+    russian?: string;
+    thai?: string;
+    japanese?: string;
+    portuguese?: string;
+    polish?: string;
+    danish?: string;
+    dutch?: string;
+    finnish?: string;
+    norwegian?: string;
+    swedish?: string;
+    hungarian?: string;
+    czech?: string;
+    romanian?: string;
+    turkish?: string;
+    brazilian?: string;
+    bulgarian?: string;
+    greek?: string;
+    ukrainian?: string;
+    latam?: string;
+    vietnamese?: string;
 }
 
 export interface ImageObj {
     default: string;
+    german?: string;
+    french?: string;
+    italian?: string;
+    koreana?: string;
+    spanish?: string;
+    schinese?: string;
+    tchinese?: string;
+    russian?: string;
+    japanese?: string;
+    brazilian?: string;
+    latam?: string;
 }
 
 export interface Reference {
@@ -60,19 +99,51 @@ export interface CardPreflight {
 
 export class CardApi {
     private API_ROOT = 'https://playartifact.com/cardset/';
-    private _cache: ArtifactCache;
+    private CACHE: ArtifactCache;
 
     constructor(cache: ArtifactCache) {
-        this._cache = cache;
+        this.CACHE = cache;
+    }
+
+    public async getCard(cardId: string): Promise<ArtifactCard> {
+        let cacheCard = this.CACHE.getCacheCard(cardId);
+        if (cacheCard) {
+            return cacheCard;
+        }
+
+        // If card can't be found, load all sets into cache
+        SET_IDS.forEach(async (setId) => {
+            try {
+                const set = await this.getSet(setId);
+            } catch (e) {
+                throw Error(e);
+            }
+        });
+
+        cacheCard = this.CACHE.getCacheCard(cardId);
+
+        // Check again if card exists, else throw invalid ID error
+        if (cacheCard) {
+            return cacheCard;
+        }
+
+        throw Error('Invalid Card ID');
     }
 
     public async getSet(setId: string): Promise<CardSetResponse> {
         try {
+            const cacheSet = this.CACHE.getCacheSet(setId);
+            if (!!cacheSet) {
+                return {
+                    card_set: cacheSet,
+                };
+            }
             const preflightUrl = `${this.API_ROOT}${setId}`;
-            const preflight: any = await this._fetchPreflight(preflightUrl);
+            const preflight: CardPreflight = await this._fetchPreflight(preflightUrl);
             const cardUrl = `${preflight.cdn_root}${preflight.url.substring(1, preflight.url.length)}`;
             const cardset = await fetch(cardUrl);
-            const cardsetJson = cardset.json();
+            const cardsetJson: CardSetResponse = (cardset as any).json();
+            this.CACHE.setCacheSet(setId, preflight, cardsetJson.card_set);
             return cardsetJson;
         } catch (error) {
             console.log(error);
