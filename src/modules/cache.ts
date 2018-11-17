@@ -1,3 +1,4 @@
+import { CURRENT_UNIX_TIME } from '../helpers/constants';
 import { ArtifactCard, CardPreflight, CardSet } from './cards';
 
 export interface CardsCache {
@@ -15,7 +16,12 @@ export class ArtifactCache {
     private CARDS_CACHE: CardsCache = {};
     private SETS_CACHE: SetsCache = {};
 
-    public getCacheCard(cardId: string): ArtifactCard {
+    public getCacheCard(cardId: string, clearCache: boolean = false): ArtifactCard {
+        if (clearCache) {
+            this.CARDS_CACHE = {};
+            return null;
+        }
+
         try {
             const fetchedCard = this.CARDS_CACHE[cardId];
             if (fetchedCard) {
@@ -27,11 +33,21 @@ export class ArtifactCache {
         }
     }
 
-    public getCacheSet(setId: string): CardSet {
+    public getCacheSet(setId: string, clearCache: boolean = false): CardSet {
+        if (clearCache) {
+            this.SETS_CACHE = {};
+            return null;
+        }
+
         try {
             const fetchedSet = this.SETS_CACHE[setId];
             if (fetchedSet) {
-                return fetchedSet.set;
+                const cacheTime = parseInt(fetchedSet.cacheInfo.expire_time, 10);
+                if (cacheTime > CURRENT_UNIX_TIME()) {
+                    return fetchedSet.set;
+                }
+
+                return null;
             }
             return null;
         } catch (e) {

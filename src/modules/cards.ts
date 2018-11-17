@@ -105,34 +105,38 @@ export class CardApi {
         this.CACHE = cache;
     }
 
-    public async getCard(cardId: string): Promise<ArtifactCard> {
-        let cacheCard = this.CACHE.getCacheCard(cardId);
-        if (cacheCard) {
-            return cacheCard;
-        }
-
-        // If card can't be found, load all sets into cache
-        SET_IDS.forEach(async (setId) => {
-            try {
-                const set = await this.getSet(setId);
-            } catch (e) {
-                throw Error(e);
+    public async getCard(cardId: string, searchSets?: string[], clearCache: boolean = false): Promise<ArtifactCard> {
+        return new Promise<ArtifactCard>((resolve, reject) => {
+            let cacheCard = this.CACHE.getCacheCard(cardId, clearCache);
+            if (cacheCard) {
+                resolve(cacheCard);
             }
+
+            const setArray = searchSets || SET_IDS;
+            // If card can't be found, load all sets into cache, then try again
+            const setArrayPromises = setArray.map((setId) => {
+                return this.getSet(setId, clearCache);
+            });
+
+            Promise.all(setArrayPromises)
+                .then(() => {
+                    cacheCard = this.CACHE.getCacheCard(cardId);
+                    // Check again if card exists, else throw invalid ID error
+                    if (cacheCard) {
+                        resolve(cacheCard);
+                    } else {
+                        reject('Invalid Card ID');
+                    }
+                })
+                .catch(() => {
+                    reject('Invalid Card ID');
+                });
         });
-
-        cacheCard = this.CACHE.getCacheCard(cardId);
-
-        // Check again if card exists, else throw invalid ID error
-        if (cacheCard) {
-            return cacheCard;
-        }
-
-        throw Error('Invalid Card ID');
     }
 
-    public async getSet(setId: string): Promise<CardSetResponse> {
+    public async getSet(setId: string, clearCache: boolean = false): Promise<CardSetResponse> {
         try {
-            const cacheSet = this.CACHE.getCacheSet(setId);
+            const cacheSet = this.CACHE.getCacheSet(setId, clearCache);
             if (!!cacheSet) {
                 return {
                     card_set: cacheSet,
@@ -142,8 +146,8 @@ export class CardApi {
             const preflight: CardPreflight = await this._fetchPreflight(preflightUrl);
             const cardUrl = `${preflight.cdn_root}${preflight.url.substring(1, preflight.url.length)}`;
             const cardset = await fetch(cardUrl);
-            const cardsetJson: CardSetResponse = (cardset as any).json();
-            this.CACHE.setCacheSet(setId, preflight, cardsetJson.card_set);
+            const cardsetJson = await cardset.json();
+            this.CACHE.setCacheSet(setId, preflight, (cardsetJson as any).card_set);
             return cardsetJson;
         } catch (error) {
             console.log(error);
