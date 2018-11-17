@@ -25,8 +25,6 @@ Project written in Typescript and has types support out of the box.
 
 ## Features
 
-Features are pretty basic right now:
-
 * Fetching card set by ID
 * Fetching card by ID
 * In-memory caching
@@ -34,7 +32,7 @@ Features are pretty basic right now:
 
 More is coming soon, especially once the Beta is released on the 19th and I can play with the client directly for more test data.
 
-[For a full API Guide, click here](https://github.com/ammuench/node-artifact-api/blob/master/API.md)
+[For a full API Documentation, click here](https://github.com/ammuench/node-artifact-api/blob/master/API.md)
 
 ## Feature Roadmap
 The following is a list of features planned for release with this API in the coming weeks:
@@ -46,10 +44,12 @@ The following is a list of features planned for release with this API in the com
 * Deck Encoding (Not Started)
 
 ## Caching
-As of **v0.3.0** the `getCard` and `getSet` methods cache in-memory according to Valve's API Rules:
+As of **v0.3.0** the `getCard` and `getSet` methods cache in-memory according to [Valve's API Guidelines](https://github.com/ValveSoftware/ArtifactDeckCode#card-set-api):
 ```markdown
 After receiving the response, you must then request the JSON file from the host specified. In this example, "https://some host/some path/somefile.json". Please cache the provided JSON for AT LEAST until the expire time provided.
 ```
+
+By default the above methods will use this caching rule.  Cache can be cleared with an optional parameter provided to each method.  It is not advised to clear caches outside of the API rules unless you are having issues or are handling caching separately, in order to avoid being blocked from accessing the API.
 
 ## Contributors
 Feel free to open a PR or log an issue if you would work on this repo.  
