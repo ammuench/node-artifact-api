@@ -6,13 +6,15 @@ export interface ArtifactDeck {
     name: string;
 }
 
-export interface DeckCard {
-    count: number;
+export interface Card {
+    id: number
+}
+
+export interface DeckCard extends Card {
     id: number;
 }
 
-export interface DeckHero {
-    id: number;
+export interface DeckHero extends Card {
     turn: number;
 }
 
