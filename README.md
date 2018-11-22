@@ -12,7 +12,7 @@ npm i --save node-artifact-api
 import singular methods, or full api as object
 
 ```javascript
-import { getDeck, getSet } from 'node-artifact-api';
+import { decodeDeck, getSet } from 'node-artifact-api';
 
 // OR
 
