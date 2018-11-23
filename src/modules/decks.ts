@@ -1,4 +1,6 @@
 const qunpack = require('qunpack');
+const locutus_pack = require('locutus/php/misc/pack');
+const locutus_base64_encoded = require('locutus/php/url/base64_encode');
 
 export interface ArtifactDeck {
     cards: DeckCard[];
@@ -38,18 +40,14 @@ export class DeckApi {
 }
 
 /*
-
 WARNING!  THERE BE DRAGONS UP AHEAD.
 I spent a fair chunk of time remapping PHP functions and figuring out bitwise stuff to translate
 Valve's decoder source into a JS compatible version.  It's very messy, has a bulk TSLint disable
 and now that it's working I'm going to avoid touching it unless there are future changes that
 break the work I've done.  As long as it works, I'm happy with it :D
-
 If you're going to dig through it, I suggest using Valve's original PHP code from here:
 https://github.com/ValveSoftware/ArtifactDeckCode/blob/master/PHP/deck_decoder.php
-
 It's likely much easier to follow and understand without all of my disassembling and reassembling.
-
                                     ^\    ^
                         / \\  / \
                        /.  \\/   \      |\___/|
@@ -66,7 +64,6 @@ It's likely much easier to follow and understand without all of my disassembling
      ~.                 '-/        /.-~----.
        ~- _             /        >..----.\\\
            ~ - - - - ^}_ _ _ _ _ _ _.-\\\
-
 */
 
 /**
@@ -307,5 +304,220 @@ export class ArtifactDeckDecoder {
         }
         return { 'heroes': $heroes, 'cards': $cards, 'name': $name };
     }
+    /* tslint:enable */
+}
+
+/**
+ * Converted PHP Decoder Provided by Valve
+ * Can be used to get raw deck bytes or raw deck JSON
+ *
+ * @export
+ * @class ArtifactDeckEncoder
+ */
+export class ArtifactDeckEncoder {
+    /* tslint:disable */
+
+    public $s_nCurrentVersion = 2;
+	private $sm_rgchEncodedPrefix = "ADC";
+	private $sm_nMaxBytesForVarUint32 = 5;
+    private $knHeaderSize = 3;
+    
+    private $deckBytes: any;
+
+    
+    public EncodeDeck( $deckContents : object ): ArtifactDeck {
+		if (!$deckContents) {
+            throw new Error('Error : false deck contents');
+        }
+
+		let $bytes = this.EncodeBytes( $deckContents );
+		if( !$bytes ) {
+            throw new Error('Error Encoding Deck');
+        }
+        
+        let $deck_code = this.EncodeBytesToString( $bytes );
+		return $deck_code;
+    }
+    private EncodeBytes( $deckContents : object) {
+		if( !$deckContents || !$deckContents.hasOwnProperty('heroes') || !$deckContents.hasOwnProperty('cards') ) {
+            return false;
+        }
+
+        $deckContents['heroes'].sort(this.SortCardsById);
+        $deckContents['cards'].sort(this.SortCardsById);
+        
+		let $countHeroes = $deckContents['heroes'].length;
+		let $allCards = $deckContents['heroes'].concat($deckContents['cards']);
+		let $bytes = [];
+		//our version and hero count
+		let $version = this.$s_nCurrentVersion << 4 | this.ExtractNBitsWithCarry( $countHeroes, 3 );
+		if( this.AddByte( $bytes, $version ) )
+			return false;
+		//the checksum which will be updated at the end
+		let $nDummyChecksum = 0;
+		let $nChecksumByte = $bytes.length;
+		if( !this.AddByte( $bytes, $nDummyChecksum ) )
+			return false;
+		// write the name size
+        let $nameLen = 0;
+        let $name = "";
+		if( $deckContents.hasOwnProperty('name') ) {
+            // replace strip_tags() with your own HTML santizer or escaper.
+            // Not sure if this will do exactly the same as strip_tags().
+			$name = $deckContents['name'].replace(/(<([^>]+)>)/ig,"");
+			let $trimLen = $name.length;
+			while( $trimLen > 63 )
+			{
+				let $amountToTrim = Math.floor( ($trimLen - 63) / 4 );
+				$amountToTrim = ($amountToTrim > 1) ? $amountToTrim : 1;
+                $name = $name.substr(0, $name.length - $amountToTrim);
+				$trimLen = $name.length;
+			}
+			$nameLen = $name.length;
+		}
+		if( !this.AddByte( $bytes, $nameLen ) )
+			return false;
+		if( !this.AddRemainingNumberToBuffer( $countHeroes, 3, $bytes ) )
+			return false;
+		let $prevCardId = 0;
+		for(let $unCurrHero = 0; $unCurrHero < $countHeroes; $unCurrHero++ )
+		{
+			let $card = $allCards[ $unCurrHero ];
+			if( $card['turn'] == 0 )
+				return false;
+			if( !this.AddCardToBuffer( $card['turn'], $card['id'] - $prevCardId, $bytes ) )
+				return false;
+			$prevCardId = $card['id'];
+		}
+		//reset our card offset
+		$prevCardId = 0;
+		//now all of the cards
+		for(let $nCurrCard = $countHeroes; $nCurrCard < $allCards.length; $nCurrCard++ )
+		{
+			//see how many cards we can group together
+			let $card = $allCards[$nCurrCard];
+			if( $card['count'] == 0 )
+				return false;
+			if( $card['id'] <= 0 )
+				return false;
+			//record this set of cards, and advance
+			if( !this.AddCardToBuffer( $card['count'], $card['id'] - $prevCardId, $bytes ) )
+				return false;
+			$prevCardId = $card['id'];
+		}
+		// save off the pre string bytes for the checksum
+		let $preStringByteCount = $bytes.length;
+		//write the string
+		{
+            const $nameBuffer = new Buffer($name, 'base64');
+			let $nameBytes = qunpack.unpack("C*", $nameBuffer);
+			for (let $nameByte of $nameBytes)
+			{
+				if( !this.AddByte( $bytes, $nameByte ) )
+					return false;
+			}
+		}
+		let $unFullChecksum = this.ComputeChecksum( $bytes, $preStringByteCount - this.$knHeaderSize );
+		let $unSmallChecksum = ( $unFullChecksum & 0x0FF );
+		$bytes[ $nChecksumByte ] = $unSmallChecksum;
+		return $bytes;
+    }
+    private EncodeBytesToString( $bytes : any) {
+		let $byteCount = $bytes.length;
+		//if we have an empty buffer, just return
+		if ( $byteCount == 0 )
+            return false;
+            
+		let $packed = locutus_pack( "C*", ...$bytes );
+		let $encoded = locutus_base64_encoded( $packed );
+        let $deck_string = this.$sm_rgchEncodedPrefix . $encoded;
+        
+        $deck_string = $deck_string.replace(/\-/g, '/');
+        $deck_string = $deck_string.replace(/\_/g, '=');
+        return $deck_string;
+    }
+
+    
+	private SortCardsById( $a : object, $b : object)
+	{
+		return ( $a['id'] <= $b['id'] ) ? -1 : 1;
+    }
+    
+    private ExtractNBitsWithCarry( $value : any, $numBits : any) {
+		let $unLimitBit = 1 << $numBits;
+		let $unResult = ( $value & ( $unLimitBit - 1 ) );
+		if( $value >= $unLimitBit )
+		{
+			$unResult |= $unLimitBit;
+		}
+		return $unResult;
+	}
+	private  AddByte( $bytes, $byte )
+	{
+		if( $byte > 255 )
+			return false;
+        
+        $bytes.push($byte);
+		return true;
+	}
+	//utility to write the rest of a number into a buffer. This will first strip the specified N bits off, and then write a series of bytes of the structure of 1 overflow bit and 7 data bits
+	private AddRemainingNumberToBuffer( $unValue, $unAlreadyWrittenBits, $bytes )
+	{
+		$unValue >>= $unAlreadyWrittenBits;
+		let $unNumBytes = 0;
+		while ( $unValue > 0 )
+		{
+			let $unNextByte = this.ExtractNBitsWithCarry( $unValue, 7 );
+			$unValue >>= 7;
+			if( !this.AddByte( $bytes, $unNextByte ) )
+				return false;
+			$unNumBytes++;
+		}
+		return true;
+	}
+	private AddCardToBuffer( $unCount, $unValue, $bytes )
+	{
+		//this shouldn't ever be the case
+		if( $unCount == 0 )
+			return false;
+		let $countBytesStart = $bytes.length;
+		//determine our count. We can only store 2 bits, and we know the value is at least one, so we can encode values 1-5. However, we set both bits to indicate an 
+		//extended count encoding
+		let $knFirstByteMaxCount = 0x03;
+		let $bExtendedCount = ( $unCount - 1 ) >= $knFirstByteMaxCount;
+		//determine our first byte, which contains our count, a continue flag, and the first few bits of our value
+		let $unFirstByteCount = $bExtendedCount ? $knFirstByteMaxCount : /*( uint8 )*/( $unCount - 1 );
+		let $unFirstByte = ( $unFirstByteCount << 6 );
+		$unFirstByte |= this.ExtractNBitsWithCarry( $unValue, 5 );
+		if( !this.AddByte( $bytes, $unFirstByte ) )
+			return false;
+		
+		//now continue writing out the rest of the number with a carry flag
+		if( !this.AddRemainingNumberToBuffer( $unValue, 5, $bytes ) )
+			return false;
+		//now if we overflowed on the count, encode the remaining count
+		if ( $bExtendedCount )
+		{
+			if( !this.AddRemainingNumberToBuffer( $unCount, 0, $bytes ) )
+				return false;
+		}
+		let $countBytesEnd = $bytes.length;
+		if( $countBytesEnd - $countBytesStart > 11 )
+		{
+			//something went horribly wrong
+			return false;
+		}
+		return true;
+	}
+	private ComputeChecksum( $bytes, $unNumBytes )
+	{
+		let $unChecksum = 0;
+		for (let $unAddCheck = this.$knHeaderSize; $unAddCheck < $unNumBytes + this.$knHeaderSize; $unAddCheck++ )
+		{
+			let $byte = $bytes[$unAddCheck];
+			$unChecksum += $byte;
+		}
+		return $unChecksum;
+	}
     /* tslint:enable */
 }
