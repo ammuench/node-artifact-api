@@ -1,5 +1,9 @@
 import { ArtifactDeck, Card } from './decks'
-
+/**
+ * @todo DOCUMENT ALL THE FUNCTIONS
+ * @todo REWRITE PORTED FUNCTION ?
+ * @todo ATTACH ArtifactDeckEncoder TO DeckApi CLASS
+ */
 export class ArtifactDeckEncoder {
     knHeaderSize: number;
     version: number;
