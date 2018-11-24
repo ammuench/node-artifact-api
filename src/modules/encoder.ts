@@ -53,12 +53,12 @@ export class ArtifactDeckEncoder {
         let name
         if (deckContents['name']) {
             name = deckContents['name']
-            const trimLen = deckContents['name'].trim().length;
+            let trimLen = name.length;
             while (trimLen > 63) {
                 let amountToTrim = Math.floor((trimLen - 63) / 4);
                 amountToTrim = (amountToTrim > 1) ? amountToTrim : 1;
                 name = name.substring(0, name.length - amountToTrim);
-                // trimLen = name.length; // Is it necesserry?
+                trimLen = name.length; // Is it necesserry?
             }
             nameLen = name.length;
         }
