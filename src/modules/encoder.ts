@@ -106,9 +106,10 @@ export class ArtifactDeckEncoder {
         let byteCount = bytes.length;
         //if we have an empty buffer, just return
         if (byteCount == 0) return false;
-        const packed = this.pack(bytes);
-        const encoded = this.base64_encode(packed);
-        let deck_string = this.EncodedPrefix + encoded;
+        // const packed = this.pack(bytes);
+        // const encoded = this.base64_encode(packed);
+        const packedAndEncoded = this.packAndEncode(bytes)
+        let deck_string = this.EncodedPrefix + packedAndEncoded;
 
         deck_string.replace('/', '-')
         deck_string.replace('=', '_')
@@ -203,6 +204,12 @@ export class ArtifactDeckEncoder {
         const buff = new Buffer(string)
         const base64 = buff.toString('base64')
         return base64
+    }
+
+    packAndEncode(binArr) {
+            const buff = Buffer.from(binArr)
+            const encoded = buff.toString('base64')
+            return encoded
     }
     
      computeChecksum(bytes, unNumBytes) {
