@@ -8,7 +8,7 @@ export interface ArtifactDeck {
 }
 
 export interface Card {
-    id: number
+    id: number;
 }
 
 export interface DeckCard extends Card {
@@ -40,14 +40,12 @@ export class DeckApi {
         }
     }
 
-    public encodeDeck(deckContents: ArtifactDeck):string {
+    public encodeDeck(deckContents: ArtifactDeck): string {
         try {
-            const deckCode: string = this.deckEncoder.encodeDeck(deckContents)
-            return deckCode
+            const deckCode: string = this.deckEncoder.encodeDeck(deckContents);
+            return deckCode;
         } catch (e) {
-            return 'Invalid deck object'
+            return 'Invalid deck object';
         }
     }
 }
-
-
