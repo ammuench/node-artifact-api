@@ -30,7 +30,7 @@ It's likely much easier to follow and understand without all of my disassembling
 
 */
 const qunpack = require('qunpack');
-import {ArtifactDeck} from './decks'
+import {ArtifactDeck} from './decks';
 
 /**
  * Converted PHP Decoder Provided by Valve

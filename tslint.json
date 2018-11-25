@@ -8,6 +8,7 @@
     "no-console": false,
     "no-var-requires": false,
     "quotemark": [true, "single"],
-    "interface-name" : [true, "never-prefix"]
+    "interface-name" : [true, "never-prefix"],
+    "no-bitwise": false
   }
 }
