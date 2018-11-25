@@ -11,7 +11,7 @@ export interface Card {
 }
 
 export interface DeckCard extends Card {
-    id: number;
+    count: number;
 }
 
 export interface DeckHero extends Card {
