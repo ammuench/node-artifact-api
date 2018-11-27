@@ -58,5 +58,5 @@ Feel free to open a PR or log an issue if you would work on this repo.
 Thank you to the following people for contributing so far!
 
 * [artbarte](https://github.com/artbarte)
-* [CamKirk](https://github.com/CamKirk)
+* [ohjinsoo](https://github.com/ohjinsoo)
 * [seanmadi](https://github.com/seanmadi)
