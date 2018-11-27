@@ -108,6 +108,12 @@ A quick and handy guide to the `node-artifact-api`
     }
   ```
 
+* **encodeDeck(deckId: ArtifactDeck): string**
+  * Takes valid `ArtifactDeck` Object according to the interface above
+  * Returns encoded deck string
+  * Will return "Invalid Deck Object" if invalid deck is provided.
+
+
 ## Sets
 
 * **getSet(setId: string, clearCache: boolean = false): Promise\<CardSetResponse\>**

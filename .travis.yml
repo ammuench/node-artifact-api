@@ -1,0 +1,36 @@
+branches:
+  only:
+  - master
+
+sudo: false
+
+jobs:
+  include: 
+  - stage: Code Linting
+    language: node_js
+    node_js:
+      - 10
+      - 9
+    install:
+      - npm install
+    script:
+      - npm run lint
+  - stage: Unit Tests
+    language: node_js
+    node_js:
+      - 10
+      - 9
+    install:
+      - npm install
+    script:
+      - npm run test
+  - stage: Build Test
+    language: node_js
+    node_js:
+      - 10
+      - 9
+    install:
+      - npm install
+    script:
+      - npm run build
+      

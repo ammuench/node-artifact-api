@@ -1,12 +1,15 @@
 import { ArtifactCache } from './modules/cache';
 import { ArtifactCard, CardApi, CardPreflight, CardSet, CardSetResponse, ImageObj, Reference, TextObj } from './modules/cards';
-import { ArtifactDeck, ArtifactDeckDecoder, DeckApi, DeckCard, DeckHero } from './modules/decks';
+import { ArtifactDeck, DeckApi, DeckCard, DeckHero } from './modules/decks';
+
+import { ArtifactDeckDecoder } from './modules/decoder';
+import { ArtifactDeckEncoder } from './modules/encoder';
 
 // Export Interfaces
 export { ArtifactCard, ArtifactDeck, CardPreflight, CardSet, CardSetResponse, DeckCard, DeckHero, ImageObj, Reference, TextObj };
 
-// Export Deck Decoder Class Directly
-export { ArtifactDeckDecoder };
+// Export Deck Decoder and Encoder Class Directly
+export { ArtifactDeckDecoder, ArtifactDeckEncoder };
 
 const cache = new ArtifactCache();
 const cardApi = new CardApi(cache);
@@ -17,7 +20,7 @@ const deckApi = new DeckApi();
  * @param {string} deckId Encoded deck ID string.  From playartifact.com website or Artifact client
  * @returns {ArtifactDeck}
  */
-export const decodeDeck = (deckId: string): ArtifactDeck =>  deckApi.getDeck(deckId);
+export const decodeDeck = (deckId: string): ArtifactDeck => deckApi.getDeck(deckId);
 
 /**
  * Fetches a card for given Card ID
@@ -35,3 +38,11 @@ export const getCard = async (cardId: string, searchSets?: string[], clearCache:
  * @returns {Promise<CardSetResponse>}
  */
 export const getSet = async (setId: string, clearCache: boolean = false): Promise<CardSetResponse> => cardApi.getSet(setId, clearCache);
+
+/**
+ * Encodes an ArtifackDeck object into a deck string
+ *
+ * @param {ArtifactDeck} deckContents valid artifact deck object
+ * @returns {string} Artifact deck code
+ */
+export const encodeDeck = (deckContents: ArtifactDeck): string => deckApi.encodeDeck(deckContents);
