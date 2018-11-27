@@ -1,4 +1,4 @@
-# Node Artifact Api [![Build Status](https://travis-ci.org/ammuench/node-artifact-api.svg?branch=master)](https://travis-ci.org/ammuench/node-artifact-api)
+# Node Artifact Api [![Build Status](https://travis-ci.org/ammuench/node-artifact-api.svg?branch=master)](https://travis-ci.org/ammuench/node-artifact-api) [![npm version](https://img.shields.io/badge/npm-v0.4.0-red.svg)](http://npmjs.com/node-artifact-api) [![Open Issues](https://img.shields.io/github/issues/ammuench/node-artifact-api.svg)](https://github.com/ammuench/node-artifact-api/issues)
 This is a node wrapper for the [official Valve Artifact API](https://github.com/ValveSoftware/ArtifactDeckCode), with Typescript support
 
 **Installation**
