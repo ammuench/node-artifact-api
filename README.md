@@ -1,4 +1,4 @@
-# Node Artifact Api
+# Node Artifact Api [![Build Status](https://travis-ci.org/ammuench/node-artifact-api.svg?branch=master)](https://travis-ci.org/ammuench/node-artifact-api)
 This is a node wrapper for the [official Valve Artifact API](https://github.com/ValveSoftware/ArtifactDeckCode), with Typescript support
 
 **Installation**
@@ -12,7 +12,7 @@ npm i --save node-artifact-api
 import singular methods, or full api as object
 
 ```javascript
-import { decodeDeck, getSet } from 'node-artifact-api';
+import { decodeDeck, encodeDeck, getSet } from 'node-artifact-api';
 
 // OR
 
@@ -26,9 +26,10 @@ Project written in Typescript and has types support out of the box.
 ## Features
 
 * Fetching card set by ID
-* Fetching card by ID
+* Fetching cards by ID
 * In-memory caching
 * Decoding deck codes
+* Encoding decks into deck codes
 
 More is coming soon, especially once the Beta is released on the 19th and I can play with the client directly for more test data.
 
@@ -41,7 +42,7 @@ The following is a list of features planned for release with this API in the com
 * System for passing a "caching" middleware (In Progress)
     * In memory caching completed with **v0.3.0!**
 * ~~Deck Decoding~~ (**Done in v0.2.0!**)
-* Deck Encoding (Not Started)
+* ~~Deck Encoding~~ (**Done in v1.0.0! (thank you to [artbarte](https://github.com/artbarte) for your work!**)
 
 ## Caching
 As of **v0.3.0** the `getCard` and `getSet` methods cache in-memory according to [Valve's API Guidelines](https://github.com/ValveSoftware/ArtifactDeckCode#card-set-api):
@@ -56,4 +57,6 @@ Feel free to open a PR or log an issue if you would work on this repo.
 
 Thank you to the following people for contributing so far!
 
+* [artbarte](https://github.com/artbarte)
+* [CamKirk](https://github.com/CamKirk)
 * [seanmadi](https://github.com/seanmadi)
