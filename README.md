@@ -42,7 +42,7 @@ The following is a list of features planned for release with this API in the com
 * System for passing a "caching" middleware (In Progress)
     * In memory caching completed with **v0.3.0!**
 * ~~Deck Decoding~~ (**Done in v0.2.0!**)
-* ~~Deck Encoding~~ (**Done in v1.0.0! (thank you to [artbarte](https://github.com/artbarte) for your work!**)
+* ~~Deck Encoding~~ (**Done in v0.4.0! (thank you to [artbarte](https://github.com/artbarte) for your work!**)
 
 ## Caching
 As of **v0.3.0** the `getCard` and `getSet` methods cache in-memory according to [Valve's API Guidelines](https://github.com/ValveSoftware/ArtifactDeckCode#card-set-api):
