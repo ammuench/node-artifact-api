@@ -1,5 +1,5 @@
-import {ArtifactDeckDecoder} from './decoder';
-import {ArtifactDeckEncoder} from './encoder';
+import { ArtifactDeckDecoder } from './decoder';
+import { ArtifactDeckEncoder } from './encoder';
 
 export interface ArtifactDeck {
     cards: DeckCard[];
@@ -22,6 +22,7 @@ export interface DeckHero extends Card {
 export class DeckApi {
     private deckDecoder: ArtifactDeckDecoder;
     private deckEncoder: ArtifactDeckEncoder;
+
     constructor() {
         this.deckDecoder = new ArtifactDeckDecoder();
         this.deckEncoder = new ArtifactDeckEncoder();
