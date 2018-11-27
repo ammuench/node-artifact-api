@@ -1,38 +1,50 @@
-stages:
-  - Lint
-  - Unit Test
-  - Build Test
+# stages:
+#   - Lint
+#   - Unit Test
+#   - Build Test
 
-jobs:
-  - stage: Lint
-    language: node_js
-    sudo: false
-    node_js:
-      - 10
-      - 9
-    install:
-      - npm install
-    script:
-      - npm run lint
+# jobs:
+#   - stage: Lint
+#     language: node_js
+#     sudo: false
+#     node_js:
+#       - 10
+#       - 9
+#     install:
+#       - npm install
+#     script:
+#       - npm run lint
 
-  - stage: Unit Test
-    language: node_js
-    sudo: false
-    node_js:
-      - 10
-      - 9
-    install:
-      - npm install
-    script:
-      - npm run test
+#   - stage: Unit Test
+#     language: node_js
+#     sudo: false
+#     node_js:
+#       - 10
+#       - 9
+#     install:
+#       - npm install
+#     script:
+#       - npm run test
 
-  - stage: Build Test
-    language: node_js
-    sudo: false
-    node_js:
-      - 10
-      - 9
-    install:
-      - npm install
-    script:
-      - npm run build
+#   - stage: Build Test
+#     language: node_js
+#     sudo: false
+#     node_js:
+#       - 10
+#       - 9
+#     install:
+#       - npm install
+#     script:
+#       - npm run build
+
+language: node_js
+sudo: false
+node_js:
+  - 10
+  - 9
+install:
+  - npm install
+script:
+  - npm run lint
+  - npm run test
+  - npm run build
