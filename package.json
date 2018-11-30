@@ -31,6 +31,7 @@
     "demo": "npm run build && node dist/demo.js"
   },
   "dependencies": {
+    "buffer": "^5.2.1",
     "node-fetch": "^2.2.1",
     "qunpack": "^0.5.2",
     "tslint": "^5.9.0"

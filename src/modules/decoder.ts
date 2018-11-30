@@ -11,7 +11,7 @@ https://github.com/ValveSoftware/ArtifactDeckCode/blob/master/PHP/deck_decoder.p
 
 It's likely much easier to follow and understand without all of my disassembling and reassembling.
 
-                                    ^\    ^
+                         ^\    ^
                         / \\  / \
                        /.  \\/   \      |\___/|
     *----*           / / |  \\    \  __/  O  O\
@@ -30,7 +30,9 @@ It's likely much easier to follow and understand without all of my disassembling
 
 */
 const qunpack = require('qunpack');
-import {ArtifactDeck} from './decks';
+import { Buffer } from 'buffer';
+
+import { ArtifactDeck } from './decks';
 
 /**
  * Converted PHP Decoder Provided by Valve
