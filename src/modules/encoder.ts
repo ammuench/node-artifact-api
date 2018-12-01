@@ -1,3 +1,5 @@
+import { Buffer } from 'buffer';
+
 import { ArtifactDeck, Card} from './decks';
 
 export class ArtifactDeckEncoder {
