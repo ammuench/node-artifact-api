@@ -34,7 +34,6 @@
     "buffer": "^5.2.1",
     "node-fetch": "^2.2.1",
     "qunpack": "^0.5.2",
-    "tslint": "^5.9.0"
   },
   "devDependencies": {
     "@types/chai": "^4.1.0",
