@@ -33,7 +33,7 @@
   "dependencies": {
     "buffer": "^5.2.1",
     "node-fetch": "^2.2.1",
-    "qunpack": "^0.5.2",
+    "qunpack": "^0.5.2"
   },
   "devDependencies": {
     "@types/chai": "^4.1.0",
